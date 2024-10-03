@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Detection</title>
+    <style>
+        .prediction-form {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .form-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .form-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .result-section {
+            margin-top: 10px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        @media (min-width: 768px) {
+            .form-section {
+                width: 48%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Diabetic Retinopathy Detection</h1>
+    
+    <div class="form-container">
+        <div class="form-section">
+            <div class="prediction-form">
+                <h2>Binary Classification</h2>
+                <form action="/predict_binary" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file">
+                    <button type="submit">Binary Classification</button>
+                </form>
+                
+                <div class="result-section">
+                    {% if binary_prediction %}
+                    <h3>Binary Prediction: {{ binary_prediction }}</h3>
+                    {% endif %}
+                    
+                    {% if binary_image_path %}
+                    <h3>Uploaded Image</h3>
+                    <img src="{{ binary_image_path }}" alt="Binary Classification Image">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if show_multi_class %}
+        <div class="form-section">
+            <div class="prediction-form">
+                <h2>Multi-class Classification</h2>
+                <form action="/predict_multi" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" value="{{ binary_image_path }}">
+                    <button type="submit">Multi-class Classification</button>
+                </form>
+                
+                <div class="result-section">
+                    {% if multi_prediction %}
+                    <h3>Multi-class Prediction: {{ multi_prediction }}</h3>
+                    {% endif %}
+                    
+                    {% if multi_image_path %}
+                    <h3>Uploaded Image</h3>
+                    <img src="{{ multi_image_path }}" alt="Multi-class Classification Image">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
