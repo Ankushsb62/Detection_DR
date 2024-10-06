@@ -1,92 +1,50 @@
-# Import necessary libraries
-from flask import Flask, request, render_template, redirect, url_for
+import streamlit as st
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras.models import load_model
 import cv2
-from werkzeug.utils import secure_filename
-import os
-
-# Initialize the Flask application
-app = Flask(__name__)
-
-# Define paths
-UPLOAD_FOLDER = 'static/uploads/'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+from PIL import Image
+import io
 
 # Load the trained models
-binary_model = load_model(r'B-DR-MobileNet2V.h5')
-multi_model = load_model(r'M-DR-MobileNet2V.h5')
+@st.cache_resource
+def load_models():
+    binary_model = load_model('B-DR-MobileNet2V.h5')
+    multi_model = load_model('M-DR-MobileNet2V (2).h5')
+    return binary_model, multi_model
+
+binary_model, multi_model = load_models()
 
 # Define class names
 binary_class_names = np.array(['DR', 'No_DR'])
 multi_class_names = np.array(['Mild', 'Moderate', 'Proliferate_Dr', 'Severe'])
 
-# Route to handle the home page
-@app.route('/')
-def index():
-    return render_template('index.html')
-
 # Helper function to process the image
 def process_image(file):
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(file_path)
+    image = Image.open(file)
+    image = image.resize((224, 224))
+    image = np.array(image)
+    image = np.expand_dims(image, axis=0)
+    return image
 
-    # Preprocess the image
-    image = cv2.imread(file_path)
-    image_resized = cv2.resize(image, (224, 224))  # Resize to (224, 224)
-    image = np.expand_dims(image_resized, axis=0)  # Expand dimensions for model
+# Streamlit app
+st.title('Diabetic Retinopathy Detection')
 
-    return image, file_path
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-# Route to handle binary prediction
-@app.route('/predict_binary', methods=['POST'])
-def predict_binary():
-    if 'file' not in request.files:
-        return redirect(request.url)
-
-    file = request.files['file']
-
-    if file.filename == '':
-        return redirect(request.url)
-
-    if file:
-        image, file_path = process_image(file)
-        prediction = binary_model.predict(image)
-        predicted_class = binary_class_names[np.argmax(prediction)]
-
-        show_multi_class = predicted_class == 'DR'
-
-        return render_template('index.html', 
-                               binary_prediction=predicted_class, 
-                               binary_image_path=file_path,
-                               show_multi_class=show_multi_class)
-
-# Route to handle multi-class prediction
-@app.route('/predict_multi', methods=['POST'])
-def predict_multi():
-    if 'file' not in request.files:
-        return redirect(request.url)
-
-    file = request.files['file']
-
-    if file.filename == '':
-        return redirect(request.url)
-
-    if file:
-        image, file_path = process_image(file)
-        prediction = multi_model.predict(image)
-        predicted_class = multi_class_names[np.argmax(prediction)]
-
-        return render_template('index.html', 
-                               binary_prediction='DR',  # We know it's DR if we're here
-                               binary_image_path=file_path,
-                               show_multi_class=True,
-                               multi_prediction=predicted_class, 
-                               multi_image_path=file_path)
-
-# Run the app
-if __name__ == '__main__':
-    app.run(debug=True)
+if uploaded_file is not None:
+    image = process_image(uploaded_file)
+    
+    st.subheader('Binary Classification')
+    binary_prediction = binary_model.predict(image)
+    binary_class = binary_class_names[np.argmax(binary_prediction)]
+    st.write(f'Binary Prediction: {binary_class}')
+    st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
+    
+    if binary_class == 'DR':
+        st.subheader('Multi-class Classification')
+        multi_prediction = multi_model.predict(image)
+        multi_class = multi_class_names[np.argmax(multi_prediction)]
+        st.write(f'Multi-class Prediction: {multi_class}')
+        st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
