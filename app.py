@@ -11,7 +11,7 @@ import io
 @st.cache_resource
 def load_models():
     binary_model = load_model('B-DR-MobileNet2V.h5')
-    multi_model = load_model('M-DR-MobileNet2V (2).h5')
+    multi_model = load_model('M-DR-MobileNet2V.h5')
     return binary_model, multi_model
 
 binary_model, multi_model = load_models()
